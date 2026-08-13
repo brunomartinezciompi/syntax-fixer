@@ -49,11 +49,19 @@ Three details that matter:
 
 ### Choosing the model
 
-The header picker switches models and remembers the choice. It uses the CLI's **aliases** (`haiku`, `sonnet`, `opus`, `fable`), not versioned IDs: an alias always resolves to the latest model in that family, so the app needs no update when a new version ships.
+The header picker uses the CLI's **aliases** (`haiku`, `sonnet`, `opus`, `fable`), not versioned IDs: an alias always resolves to the latest model in that family, so the app needs no update when a new version ships.
+
+Timings in the menu are **measured on your machine, not hardcoded**:
+
+- **Passive measurement.** Every real call is timed and recorded per model — a rolling average of the last 10, so a slow afternoon ages out. Only successful calls count; a timeout or a CLI error would poison the average with a time that isn't the model's.
+- **Benchmark all models** (in the menu) times all four once on a fixed sentence, ~20s. It's opt-in rather than automatic on launch for two reasons: it spends four calls of quota every time, and passive measurement alone only ever tells you about the model you already use, so you'd never learn another is faster.
+- **The default follows the data.** With no hand-picked model the app selects the fastest one it has measured, and the picker shows `auto` to say so. Picking a model from the menu pins it, `auto` disappears, and the measurements stop overriding you. **Forget measurements** clears the history and returns to `auto`.
+
+Ranking needs at least 3 samples on 2 or more models before the app will claim a fastest — one sample is noise.
 
 ### About speed
 
-Measured on this specific task (fixing one sentence), 2 runs per model:
+Reference numbers from the developer's machine (2 runs per model) — yours may differ, which is the point of measuring locally:
 
 | model | average |
 |---|---|
@@ -62,7 +70,7 @@ Measured on this specific task (fixing one sentence), 2 runs per model:
 | `haiku` | 5.2s |
 | `fable` | 6.0s |
 
-**Model size does not predict latency here**: `opus` measured faster than `haiku`. Since the output is a single sentence, the time is dominated by service and network overhead rather than generation — and the variance between runs is larger than the gap between models, so no model is consistently fastest. `opus` is the default because it measured fastest. The CLI's startup, which looks like the obvious suspect, is 0.06s: it's a native binary.
+**Model size does not predict latency here**: `opus` measured faster than `haiku`. Since the output is a single sentence, the time is dominated by service and network overhead rather than generation — and the variance between runs is larger than the gap between models, so treat any single ranking with suspicion. `opus` is the starting default because it measured fastest. The CLI's startup, which looks like the obvious suspect, is 0.06s: it's a native binary.
 
 Things I tried that **don't** help: dropping tools (`--allowed-tools ""`) and dynamic prompt sections (`--exclude-dynamic-system-prompt-sections`) gave the same time and degraded the result — the model swallowed the instruction and returned `"Fix it. This doesn't work well."`. If you want this to be instant you have to go straight at the API with a key, which is a different usage model (and there you *would* have a secret to protect).
 
@@ -95,6 +103,7 @@ The result is copied to the clipboard automatically as soon as it arrives.
 | `Sources/main.swift` | The floating `NSPanel`, the app lifecycle and the height fitting |
 | `Sources/ContentView.swift` | The SwiftUI interface and state |
 | `Sources/ClaudeRunner.swift` | Locates and runs the `claude` CLI |
+| `Sources/Stats.swift` | Rolling per-model latency stats, persisted in UserDefaults |
 | `make-icon.swift` | Draws the icon at the 10 sizes `iconutil` wants |
 | `build.sh` | Compiles and assembles the `.app` |
 

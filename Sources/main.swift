@@ -71,9 +71,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         ))
 
-        // Remembers where you left it; first run goes top-right.
-        panel.setFrameAutosaveName("SyntaxFixerPanel")
-        if panel.frame.origin == .zero, let screen = NSScreen.main {
+        // Remembers where you left it; first run goes top-right. Ask UserDefaults
+        // whether a frame was ever saved — by the time the panel exists macOS has
+        // already given it an origin, so checking for .zero never fires.
+        let autosaveName = "SyntaxFixerPanel"
+        let hasSavedFrame = UserDefaults.standard
+            .string(forKey: "NSWindow Frame \(autosaveName)") != nil
+        panel.setFrameAutosaveName(autosaveName)
+        if !hasSavedFrame, let screen = NSScreen.main {
             let visible = screen.visibleFrame
             panel.setFrameOrigin(NSPoint(
                 x: visible.maxX - panel.frame.width - 24,

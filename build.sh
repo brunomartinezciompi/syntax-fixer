@@ -15,7 +15,7 @@ swiftc -O \
   -target arm64-apple-macos14.0 \
   -framework AppKit -framework SwiftUI \
   -o "$BUNDLE/Contents/MacOS/$APP_NAME" \
-  Sources/main.swift Sources/ContentView.swift Sources/ClaudeRunner.swift
+  Sources/main.swift Sources/ContentView.swift Sources/ClaudeRunner.swift Sources/Stats.swift
 
 echo "→ generating icon…"
 ICONSET="build/AppIcon.iconset"
