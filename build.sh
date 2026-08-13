@@ -1,5 +1,5 @@
 #!/bin/bash
-# Compila SyntaxFixer y arma el bundle .app (sin Xcode).
+# Builds SyntaxFixer and assembles the .app bundle (no Xcode).
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -10,14 +10,14 @@ BUNDLE="build/$APP_NAME.app"
 rm -rf build
 mkdir -p "$BUNDLE/Contents/MacOS" "$BUNDLE/Contents/Resources"
 
-echo "→ compilando…"
+echo "→ compiling…"
 swiftc -O \
   -target arm64-apple-macos14.0 \
   -framework AppKit -framework SwiftUI \
   -o "$BUNDLE/Contents/MacOS/$APP_NAME" \
   Sources/main.swift Sources/ContentView.swift Sources/ClaudeRunner.swift
 
-echo "→ generando icono…"
+echo "→ generating icon…"
 ICONSET="build/AppIcon.iconset"
 mkdir -p "$ICONSET"
 swift make-icon.swift "$ICONSET" >/dev/null
@@ -39,13 +39,13 @@ cat > "$BUNDLE/Contents/Info.plist" <<'PLIST'
     <key>LSMinimumSystemVersion</key>  <string>14.0</string>
     <key>CFBundleIconFile</key>        <string>AppIcon</string>
     <key>NSHighResolutionCapable</key> <true/>
-    <!-- Agente: sin icono en el Dock, sólo el panel flotante. -->
+    <!-- Agent: no Dock icon, just the floating panel. -->
     <key>LSUIElement</key>             <true/>
 </dict>
 </plist>
 PLIST
 
-# Firma ad-hoc: sin esto macOS mata la app al lanzarla desde Finder.
+# Ad-hoc signature: without it macOS kills the app when launched from Finder.
 codesign --force --deep --sign - "$BUNDLE" >/dev/null 2>&1 || true
 
-echo "✓ listo: $(pwd)/$BUNDLE"
+echo "✓ done: $(pwd)/$BUNDLE"

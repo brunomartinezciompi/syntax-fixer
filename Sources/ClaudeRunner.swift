@@ -1,6 +1,6 @@
 import Foundation
 
-/// Ejecuta el CLI `claude` (usa la sesión / suscripción ya autenticada localmente).
+/// Runs the `claude` CLI (uses the session / subscription already authenticated locally).
 enum ClaudeRunner {
 
     enum RunError: LocalizedError {
@@ -12,13 +12,13 @@ enum ClaudeRunner {
         var errorDescription: String? {
             switch self {
             case .cliNotFound:
-                return "No encontré el binario `claude` en el sistema."
+                return "Could not find the `claude` binary on this system."
             case .timedOut:
-                return "La consulta tardó demasiado (timeout)."
+                return "The request took too long (timeout)."
             case .failed(let message):
-                return message.isEmpty ? "El CLI devolvió un error." : message
+                return message.isEmpty ? "The CLI returned an error." : message
             case .emptyOutput:
-                return "Respuesta vacía."
+                return "Empty response."
             }
         }
     }
@@ -35,9 +35,9 @@ enum ClaudeRunner {
     making it read naturally and correctly.
     """
 
-    /// Localiza el binario `claude`. La app puede lanzarse desde Finder, donde el PATH
-    /// no incluye Homebrew ni los instaladores locales, así que probamos rutas conocidas
-    /// y sólo caemos al login shell como último recurso.
+    /// Locates the `claude` binary. The app can be launched from Finder, where PATH
+    /// includes neither Homebrew nor the local installers, so we try known paths and
+    /// fall back to the login shell only as a last resort.
     private static func resolveCLI() -> String? {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let candidates = [
@@ -74,7 +74,7 @@ enum ClaudeRunner {
         return nil
     }
 
-    static func improve(_ text: String, model: String = "sonnet", timeout: TimeInterval = 90) throws -> String {
+    static func improve(_ text: String, model: String = "opus", timeout: TimeInterval = 90) throws -> String {
         guard let cli = resolveCLI() else { throw RunError.cliNotFound }
 
         let process = Process()
@@ -83,15 +83,15 @@ enum ClaudeRunner {
             "-p",
             "--model", model,
             "--output-format", "text",
-            // Sin settings del usuario: evita que CLAUDE.md u otras reglas globales
-            // cambien el idioma o agreguen preámbulos a la respuesta.
+            // No user settings: keeps CLAUDE.md and other global rules from
+            // changing the language or adding preambles to the response.
             "--setting-sources", "",
             "--strict-mcp-config",
             "--system-prompt", systemPrompt,
             userPrompt,
         ]
 
-        // Directorio vacío para no cargar el CLAUDE.md de ningún proyecto.
+        // Empty directory so no project's CLAUDE.md gets loaded.
         let workDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("SyntaxFixer", isDirectory: true)
         try? FileManager.default.createDirectory(at: workDir, withIntermediateDirectories: true)
@@ -114,7 +114,7 @@ enum ClaudeRunner {
         stdin.fileHandleForWriting.write(Data(text.utf8))
         try? stdin.fileHandleForWriting.close()
 
-        // Leer en background para no bloquear si el pipe se llena.
+        // Read in the background so a full pipe can't block us.
         var outData = Data()
         var errData = Data()
         let queue = DispatchQueue(label: "syntaxfixer.read")

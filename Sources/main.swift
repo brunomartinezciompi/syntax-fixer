@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Log a ~/Library/Logs/SyntaxFixer.log para diagnosticar cierres inesperados.
+/// Logs to ~/Library/Logs/SyntaxFixer.log to diagnose unexpected shutdowns.
 enum Log {
     private static let url = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Logs/SyntaxFixer.log")
@@ -21,15 +21,15 @@ enum Log {
     }
 }
 
-/// Panel flotante que puede recibir foco de teclado sin ser una ventana principal.
+/// Floating panel that can take keyboard focus without being a main window.
 final class FloatingPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 
-    /// Escape en un NSPanel dispara `cancelOperation:`, que cierra la ventana.
-    /// Acá eso equivaldría a cerrar la app entera, así que lo neutralizamos.
+    /// Escape in an NSPanel fires `cancelOperation:`, which closes the window.
+    /// Here that would quit the whole app, so we neutralize it.
     override func cancelOperation(_ sender: Any?) {
-        Log.write("escape ignorado (cancelOperation)")
+        Log.write("escape ignored (cancelOperation)")
     }
 }
 
@@ -37,7 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var panel: FloatingPanel?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Sin icono en el Dock ni en el switcher: sólo el panel flotante.
+        // No Dock icon and no switcher entry: just the floating panel.
         NSApp.setActivationPolicy(.accessory)
         buildMenu()
 
@@ -54,7 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
         panel.standardWindowButton(.zoomButton)?.isHidden = true
 
-        // Siempre encima, en todos los escritorios, y no se esconde al perder foco.
+        // Always on top, on every desktop, and never hides when it loses focus.
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.hidesOnDeactivate = false
@@ -71,7 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         ))
 
-        // Recuerda dónde lo dejaste; la primera vez, arriba a la derecha.
+        // Remembers where you left it; first run goes top-right.
         panel.setFrameAutosaveName("SyntaxFixerPanel")
         if panel.frame.origin == .zero, let screen = NSScreen.main {
             let visible = screen.visibleFrame
@@ -81,8 +81,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             ))
         }
 
-        // El autosave también guarda el alto que tenía con la respuesta anterior
-        // en pantalla: conservamos sólo la posición y volvemos al alto base.
+        // The autosave also stores the height it had with the previous response
+        // on screen: we keep only the position and return to the base height.
         var frame = panel.frame
         let top = frame.maxY
         frame.size.height = PanelLayout.baseHeight
@@ -94,32 +94,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         self.panel = panel
-        Log.write("app lista, panel visible en \(panel.frame)")
+        Log.write("app ready, panel visible at \(panel.frame)")
     }
 
-    /// Sólo se sale por la × o por ⌘Q, nunca porque una ventana se cerró.
+    /// We only quit via the × or ⌘Q, never because a window closed.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }
 
-    /// El panel no se cierra: quedaría la app viva pero invisible.
+    /// The panel never closes: that would leave the app alive but invisible.
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        Log.write("windowShouldClose interceptado — no se cierra")
+        Log.write("windowShouldClose intercepted — not closing")
         return false
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        Log.write("terminando. stack:\n" + Thread.callStackSymbols.prefix(12).joined(separator: "\n"))
+        Log.write("terminating. stack:\n" + Thread.callStackSymbols.prefix(12).joined(separator: "\n"))
     }
 
-    /// Click en el icono del Dock cuando la app ya corre: trae el panel al frente.
+    /// Clicking the Dock icon while the app runs: brings the panel to the front.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         showPanel()
         return true
     }
 
-    /// Ajusta el alto del panel al de la respuesta, creciendo hacia abajo
-    /// para que el borde superior no se mueva.
+    /// Fits the panel height to the response, growing downward so the top
+    /// edge stays put.
     private func fitToResult(height: CGFloat) {
         guard let panel else { return }
 
@@ -143,7 +143,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    /// Menú mínimo para que ⌘Q, ⌘C, ⌘V y ⌘A funcionen dentro del panel.
+    /// Minimal menu so ⌘Q, ⌘C, ⌘V and ⌘A work inside the panel.
     private func buildMenu() {
         let mainMenu = NSMenu()
 

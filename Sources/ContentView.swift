@@ -12,30 +12,30 @@ private enum Palette {
 }
 
 enum PanelLayout {
-    /// Alto del panel sin resultado (header + input + footer).
+    /// Panel height with no result showing (header + input + footer).
     static let baseHeight: CGFloat = 190
-    /// Tope de crecimiento del bloque de resultado; más allá, scrollea.
+    /// Growth ceiling for the result block; past this it scrolls.
     static let maxResultHeight: CGFloat = 420
 }
 
 private let mono = Font.system(size: 12, weight: .regular, design: .monospaced)
 private let monoSmall = Font.system(size: 10, weight: .medium, design: .monospaced)
 
-/// Los alias del CLI, no IDs con versión: `sonnet` resuelve siempre al último
-/// Sonnet, así que la app no hay que actualizarla cuando sale un modelo nuevo.
+/// CLI aliases, not versioned IDs: `sonnet` always resolves to the latest Sonnet,
+/// so the app needs no update when a new model ships.
 enum Model: String, CaseIterable, Identifiable {
     case haiku, sonnet, opus, fable
 
     var id: String { rawValue }
 
-    /// Los tiempos son medidos en esta tarea (corregir una frase). La latencia la
-    /// domina el servicio, no el tamaño del modelo: opus midió más rápido que haiku.
+    /// Timings measured on this task (fixing one sentence). Latency here is
+    /// dominated by the service, not model size: opus measured faster than haiku.
     var hint: String {
         switch self {
-        case .haiku: return "el más liviano — ~5,2s"
-        case .sonnet: return "equilibrado — ~4,4s"
-        case .opus: return "más capaz — ~3,7s"
-        case .fable: return "el más capaz — ~6,0s"
+        case .haiku: return "lightest — ~5.2s"
+        case .sonnet: return "balanced — ~4.4s"
+        case .opus: return "more capable, fastest here — ~3.7s"
+        case .fable: return "most capable — ~6.0s"
         }
     }
 }
@@ -44,7 +44,8 @@ enum Model: String, CaseIterable, Identifiable {
 final class ViewModel: ObservableObject {
     @Published var selectedModel: Model = {
         let saved = UserDefaults.standard.string(forKey: "model") ?? ""
-        return Model(rawValue: saved) ?? .sonnet
+        // opus by default: it measured fastest on this task.
+        return Model(rawValue: saved) ?? .opus
     }() {
         didSet { UserDefaults.standard.set(selectedModel.rawValue, forKey: "model") }
     }
@@ -113,7 +114,7 @@ final class ViewModel: ObservableObject {
     }
 }
 
-/// Alto ideal del bloque de resultado, para que la ventana crezca con la respuesta.
+/// Ideal height of the result block, so the window can grow with the response.
 private struct ResultHeightKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
@@ -122,7 +123,7 @@ private struct ResultHeightKey: PreferenceKey {
 }
 
 struct ContentView: View {
-    /// Alto que necesita el resultado (0 = sin resultado). Lo consume la ventana.
+    /// Height the result needs (0 = no result). The window consumes this.
     var onResultHeightChange: (CGFloat) -> Void = { _ in }
 
     @StateObject private var model = ViewModel()
@@ -167,7 +168,7 @@ struct ContentView: View {
 
             Spacer()
             if model.copied {
-                Text("copiado ✓")
+                Text("copied ✓")
                     .font(monoSmall)
                     .foregroundStyle(Palette.accent)
                     .transition(.opacity)
@@ -181,12 +182,12 @@ struct ContentView: View {
                     .frame(width: 16, height: 16)
             }
             .buttonStyle(.plain)
-            .help("Cerrar (⌘Q)")
+            .help("Quit (⌘Q)")
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
         .background(Palette.surface)
-        // Permite arrastrar la ventana desde el header.
+        // Lets the window be dragged from the header.
         .background(WindowDragArea())
     }
 
@@ -196,7 +197,7 @@ struct ContentView: View {
                 Button {
                     model.selectedModel = option
                 } label: {
-                    // El check lo pone el propio menú de macOS al marcar la selección.
+                    // macOS draws the checkmark itself on the selected item.
                     Text("\(option.rawValue) — \(option.hint)")
                 }
                 .disabled(option == model.selectedModel)
@@ -222,7 +223,7 @@ struct ContentView: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .disabled(model.isRunning)
-        .help("Modelo de Claude a usar")
+        .help("Claude model to use")
     }
 
     // MARK: - Input
@@ -236,7 +237,7 @@ struct ContentView: View {
 
             ZStack(alignment: .topLeading) {
                 if model.input.isEmpty {
-                    Text("escribí la frase a corregir…")
+                    Text("type the sentence to fix…")
                         .font(mono)
                         .foregroundStyle(Palette.dim)
                         .padding(.leading, 5)
@@ -255,7 +256,7 @@ struct ContentView: View {
         .frame(minHeight: 62, maxHeight: 110)
     }
 
-    // MARK: - Resultado
+    // MARK: - Result
 
     private var resultArea: some View {
         ScrollView {
@@ -272,8 +273,8 @@ struct ContentView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            // Dentro de un ScrollView el contenido recibe su alto ideal, así que
-            // esto mide cuánto necesita la respuesta, no cuánto le da la ventana.
+            // Inside a ScrollView the content gets its ideal height, so this
+            // measures what the response needs, not what the window grants it.
             .background(
                 GeometryReader { proxy in
                     Color.clear.preference(key: ResultHeightKey.self, value: proxy.size.height)
@@ -287,7 +288,7 @@ struct ContentView: View {
             guard model.error.isEmpty, !model.output.isEmpty else { return }
             model.copy(model.output)
         }
-        .help(model.error.isEmpty ? "Click para copiar de nuevo" : "")
+        .help(model.error.isEmpty ? "Click to copy again" : "")
     }
 
     // MARK: - Footer
@@ -302,7 +303,7 @@ struct ContentView: View {
                             .scaleEffect(0.7)
                             .frame(width: 10, height: 10)
                     }
-                    Text(model.isRunning ? "validando…" : "Validar")
+                    Text(model.isRunning ? "validating…" : "Validate")
                         .font(monoSmall)
                 }
                 .frame(maxWidth: .infinity)
@@ -318,7 +319,7 @@ struct ContentView: View {
             .buttonStyle(.plain)
             .disabled(!model.canRun)
             .keyboardShortcut(.return, modifiers: .command)
-            .help("Validar (⌘↵)")
+            .help("Validate (⌘↵)")
 
             Button(action: model.clear) {
                 Text("Clear")
@@ -343,7 +344,7 @@ struct ContentView: View {
     }
 }
 
-/// Vista de AppKit transparente que deja arrastrar la ventana desde cualquier punto de la zona.
+/// Transparent AppKit view that lets the window be dragged from anywhere in its area.
 private struct WindowDragArea: NSViewRepresentable {
     final class DragView: NSView {
         override func mouseDown(with event: NSEvent) {
