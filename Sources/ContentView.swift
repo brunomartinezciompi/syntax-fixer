@@ -21,8 +21,34 @@ enum PanelLayout {
 private let mono = Font.system(size: 12, weight: .regular, design: .monospaced)
 private let monoSmall = Font.system(size: 10, weight: .medium, design: .monospaced)
 
+/// Los alias del CLI, no IDs con versión: `sonnet` resuelve siempre al último
+/// Sonnet, así que la app no hay que actualizarla cuando sale un modelo nuevo.
+enum Model: String, CaseIterable, Identifiable {
+    case haiku, sonnet, opus, fable
+
+    var id: String { rawValue }
+
+    /// Los tiempos son medidos en esta tarea (corregir una frase). La latencia la
+    /// domina el servicio, no el tamaño del modelo: opus midió más rápido que haiku.
+    var hint: String {
+        switch self {
+        case .haiku: return "el más liviano — ~5,2s"
+        case .sonnet: return "equilibrado — ~4,4s"
+        case .opus: return "más capaz — ~3,7s"
+        case .fable: return "el más capaz — ~6,0s"
+        }
+    }
+}
+
 @MainActor
 final class ViewModel: ObservableObject {
+    @Published var selectedModel: Model = {
+        let saved = UserDefaults.standard.string(forKey: "model") ?? ""
+        return Model(rawValue: saved) ?? .sonnet
+    }() {
+        didSet { UserDefaults.standard.set(selectedModel.rawValue, forKey: "model") }
+    }
+
     @Published var input = ""
     @Published var output = ""
     @Published var error = ""
@@ -44,10 +70,11 @@ final class ViewModel: ObservableObject {
         output = ""
         copied = false
 
+        let model = selectedModel.rawValue
         Task {
             let result = await Task.detached(priority: .userInitiated) { () -> Result<String, Error> in
                 do {
-                    return .success(try ClaudeRunner.improve(text))
+                    return .success(try ClaudeRunner.improve(text, model: model))
                 } catch {
                     return .failure(error)
                 }
@@ -135,6 +162,9 @@ struct ContentView: View {
             Text("syntax")
                 .font(monoSmall)
                 .foregroundStyle(Palette.dim)
+
+            modelPicker
+
             Spacer()
             if model.copied {
                 Text("copiado ✓")
@@ -158,6 +188,41 @@ struct ContentView: View {
         .background(Palette.surface)
         // Permite arrastrar la ventana desde el header.
         .background(WindowDragArea())
+    }
+
+    private var modelPicker: some View {
+        Menu {
+            ForEach(Model.allCases) { option in
+                Button {
+                    model.selectedModel = option
+                } label: {
+                    // El check lo pone el propio menú de macOS al marcar la selección.
+                    Text("\(option.rawValue) — \(option.hint)")
+                }
+                .disabled(option == model.selectedModel)
+            }
+        } label: {
+            HStack(spacing: 3) {
+                Text(model.selectedModel.rawValue)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 7, weight: .bold))
+            }
+            .font(monoSmall)
+            .foregroundStyle(Palette.dim)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(Palette.background.opacity(0.8))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(Palette.border, lineWidth: 1)
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .disabled(model.isRunning)
+        .help("Modelo de Claude a usar")
     }
 
     // MARK: - Input

@@ -4,7 +4,7 @@ Un panel flotante y minúsculo para macOS que corrige la gramática y la sintaxi
 
 ```
 ┌──────────────────────────────┐
-│ ●  syntax          copiado ✓ │
+│ ●  syntax [sonnet ⌄] copiado✓│
 ├──────────────────────────────┤
 │ ❯ this dont read good        │
 ├──────────────────────────────┤
@@ -15,6 +15,7 @@ Un panel flotante y minúsculo para macOS que corrige la gramática y la sintaxi
 ```
 
 - Siempre encima de las demás ventanas, en todos los escritorios.
+- Picker de modelo (`haiku` / `sonnet` / `opus` / `fable`), que recuerda tu elección.
 - Se arrastra desde cualquier parte del fondo y recuerda dónde lo dejaste.
 - La ventana crece sola si la respuesta es larga.
 - Sin icono en el Dock mientras corre (es una app tipo agente), pero con un lanzador fijo si la agregás al Dock.
@@ -46,7 +47,24 @@ Tres detalles que importan:
 - **`--system-prompt`** reemplaza el system prompt por completo (no lo agrega), y el proceso corre con el directorio de trabajo en una carpeta temporal vacía, para que no cargue el `CLAUDE.md` de ningún proyecto.
 - **El binario se busca por rutas conocidas** (Homebrew, `~/.claude/local`, `~/.local/bin`, …) porque una app lanzada desde Finder no hereda el `PATH` de tu shell.
 
-Sobre velocidad: la llamada tarda ~6-9 segundos, y casi todo es el arranque del CLI, no el modelo. Probado con `haiku` en lugar de `sonnet`, y quitando herramientas y secciones dinámicas del prompt: no cambia el tiempo (y sacar las secciones dinámicas empeora el resultado). Si querés que sea instantáneo, hay que ir contra la API directo con una key, que es otro modelo de uso.
+### Elegir el modelo
+
+El picker del header cambia el modelo y recuerda la elección. Usa los **alias** del CLI (`haiku`, `sonnet`, `opus`, `fable`), no IDs con versión: un alias resuelve siempre al último modelo de esa familia, así que la app no hay que actualizarla cuando sale una versión nueva.
+
+### Sobre velocidad
+
+Medido en esta tarea concreta (corregir una frase), 2 corridas por modelo:
+
+| modelo | promedio |
+|---|---|
+| `opus` | 3,7s |
+| `sonnet` | 4,4s |
+| `haiku` | 5,2s |
+| `fable` | 6,0s |
+
+**El tamaño del modelo no predice la latencia acá**: `opus` midió más rápido que `haiku`. Como la salida es una sola frase, el tiempo lo domina el overhead de servicio y red, no la generación — y la varianza entre corridas es mayor que la diferencia entre modelos, así que no hay un modelo consistentemente más rápido. El arranque del CLI, que a primera vista parece el sospechoso, son 0,06s: es un binario nativo.
+
+Cosas que probé y **no** ayudan: quitar herramientas (`--allowed-tools ""`) y secciones dinámicas del prompt (`--exclude-dynamic-system-prompt-sections`) dio el mismo tiempo y encima degradó el resultado — el modelo se comió la instrucción y devolvió `"Fix it. This doesn't work well."`. Si querés que sea instantáneo hay que ir contra la API directo con una key, que ya es otro modelo de uso (y ahí sí habría un secreto que cuidar).
 
 ## Compilar e instalar
 
