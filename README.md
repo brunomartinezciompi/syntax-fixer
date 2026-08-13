@@ -2,17 +2,8 @@
 
 A tiny floating panel for macOS that fixes the grammar and syntax of a sentence and leaves the result **on your clipboard**. No browser window, no tabs, no leaving whatever you were doing.
 
-```
-┌──────────────────────────────┐
-│ ●  syntax [opus ⌄]   copied ✓│
-├──────────────────────────────┤
-│ ❯ this dont read good        │
-├──────────────────────────────┤
-│ ✓ This doesn't read well.    │
-├──────────────────────────────┤
-│ [ Validate ⌘↵ ]  [ Clear ⌘K ]│
-└──────────────────────────────┘
-```
+<img width="460" height="207" alt="Captura de pantalla 2026-08-13 a las 3 54 11 p  m" src="https://github.com/user-attachments/assets/2196fc76-a03b-42d8-a846-11f9bd2f3b00" />
+
 
 - Always above every other window, on every desktop.
 - Model picker (`haiku` / `sonnet` / `opus` / `fable`) that remembers your choice.
